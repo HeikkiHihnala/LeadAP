@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#c8102e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AP Leads">
+  <title>AGCO Power Lead Capture</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="icons/icon-192.png" alt="" class="logo">
+      <div>
+        <div class="title">AGCO Power</div>
+        <div class="subtitle" data-i18n="subtitle">Liidien keräys</div>
+      </div>
+    </div>
+    <div class="status">
+      <span id="netStatus" class="pill"></span>
+      <button id="btnLogin" class="btn small light" data-i18n="login">Kirjaudu</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-view="viewNew" data-i18n="tabNew">Uusi liidi</button>
+    <button class="tab" data-view="viewList"><span data-i18n="tabList">Liidit</span> <span id="pendingBadge" class="badge hidden">0</span></button>
+    <button class="tab" data-view="viewSettings" data-i18n="tabSettings">Asetukset</button>
+  </nav>
+
+  <main>
+    <!-- ================= NEW LEAD ================= -->
+    <section id="viewNew" class="view active">
+      <div class="eventbar"><span data-i18n="event">Tapahtuma</span>: <strong id="eventLabel"></strong></div>
+
+      <div class="card">
+        <h2 data-i18n="step1">1. Yhteystiedot</h2>
+        <div class="row2">
+          <label class="btn primary file-btn">
+            📷 <span data-i18n="scanCard">Skannaa käyntikortti</span>
+            <input id="cardInput" type="file" accept="image/*" capture="environment" hidden>
+          </label>
+          <label class="btn secondary file-btn">
+            🖼️ <span data-i18n="pickImage">Valitse kuva</span>
+            <input id="cardInputGallery" type="file" accept="image/*" hidden>
+          </label>
+        </div>
+        <div id="ocrStatus" class="hint hidden"></div>
+        <img id="cardPreview" class="card-preview hidden" alt="Business card">
+        <details id="ocrRawBox" class="hidden"><summary data-i18n="ocrRaw">Tunnistettu teksti</summary><pre id="ocrRaw"></pre></details>
+
+        <form id="leadForm" autocomplete="off">
+          <label><span data-i18n="name">Nimi</span> *<input name="name" required></label>
+          <label><span data-i18n="company">Yritys</span> *<input name="company" required></label>
+          <label><span data-i18n="jobTitle">Titteli</span><input name="title"></label>
+          <label><span data-i18n="email">Sähköposti</span><input name="email" type="email" inputmode="email"></label>
+          <div id="dupWarning" class="warn hidden"></div>
+          <label><span data-i18n="phone">Puhelin</span><input name="phone" type="tel" inputmode="tel"></label>
+          <label><span data-i18n="website">Verkkosivu</span><input name="website" inputmode="url"></label>
+          <label><span data-i18n="country">Maa</span><input name="country"></label>
+          <label><span data-i18n="address">Osoite</span><textarea name="address" rows="2"></textarea></label>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="step2">2. Kiinnostus</h2>
+        <div class="label" data-i18n="engines">Kiinnostavat moottorit</div>
+        <div id="engineChips"></div>
+        <div class="label" data-i18n="application">Sovellus / käyttökohde</div>
+        <div id="appChips" class="chips"></div>
+        <div class="row2">
+          <label><span data-i18n="volume">Arvioitu vuosivolyymi (kpl)</span><input id="volume" type="number" inputmode="numeric" min="0"></label>
+          <label><span data-i18n="timeline">Aikataulu</span>
+            <select id="timeline">
+              <option value=""></option>
+              <option value="0-6 mo">0–6 kk</option>
+              <option value="6-12 mo">6–12 kk</option>
+              <option value="12-24 mo">12–24 kk</option>
+              <option value="24+ mo">&gt; 24 kk</option>
+            </select>
+          </label>
+        </div>
+        <div class="label" data-i18n="temperature">Liidin lämpötila</div>
+        <div class="seg" id="tempSeg">
+          <button type="button" data-val="Hot" class="hot">🔥 Hot</button>
+          <button type="button" data-val="Warm" class="warm">🌤 Warm</button>
+          <button type="button" data-val="Cold" class="cold">❄️ Cold</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="step3">3. Muistiinpanot</h2>
+        <div class="row2">
+          <button type="button" id="btnDictate" class="btn primary">🎤 <span data-i18n="dictate">Sanele</span></button>
+          <select id="speechLang">
+            <option value="fi-FI">Suomi</option>
+            <option value="en-GB">English</option>
+            <option value="sv-SE">Svenska</option>
+            <option value="de-DE">Deutsch</option>
+            <option value="it-IT">Italiano</option>
+            <option value="fr-FR">Français</option>
+          </select>
+        </div>
+        <div id="dictateHint" class="hint hidden"></div>
+        <textarea id="notes" rows="5" data-i18n-ph="notesPh" placeholder="Kirjoita tai sanele lyhyet muistiinpanot…"></textarea>
+
+        <div class="label" data-i18n="nextStep">Seuraava toimenpide</div>
+        <div id="nextChips" class="chips"></div>
+        <div class="row2">
+          <label><span data-i18n="responsible">Vastuuhenkilö</span><input id="responsible"></label>
+          <label><span data-i18n="followDate">Seurantapäivä</span><input id="followDate" type="date"></label>
+        </div>
+        <label class="check"><input type="checkbox" id="consent"> <span data-i18n="consent">Asiakas on antanut luvan tallentaa yhteystiedot ja ottaa yhteyttä (GDPR)</span></label>
+      </div>
+
+      <div class="actions sticky">
+        <button type="button" id="btnClear" class="btn secondary" data-i18n="clear">Tyhjennä</button>
+        <button type="button" id="btnSave" class="btn primary big" data-i18n="save">Tallenna liidi</button>
+      </div>
+    </section>
+
+    <!-- ================= LIST ================= -->
+    <section id="viewList" class="view">
+      <div class="row2">
+        <button id="btnSyncAll" class="btn primary" data-i18n="syncAll">Synkronoi SharePointiin</button>
+        <button id="btnExport" class="btn secondary" data-i18n="exportCsv">Vie CSV</button>
+      </div>
+      <input id="search" class="search" data-i18n-ph="searchPh" placeholder="Hae nimellä tai yrityksellä…">
+      <div id="leadList"></div>
+    </section>
+
+    <!-- ================= SETTINGS ================= -->
+    <section id="viewSettings" class="view">
+      <div class="card">
+        <label><span data-i18n="event">Tapahtuma</span><input id="setEvent"></label>
+        <label><span data-i18n="folder">SharePoint-kansio</span><input id="setFolder"></label>
+        <label><span data-i18n="uiLang">Sovelluksen kieli</span>
+          <select id="setUiLang"><option value="fi">Suomi</option><option value="en">English</option></select>
+        </label>
+        <label><span data-i18n="myName">Oma nimi (kerääjä)</span><input id="setCollector"></label>
+        <button id="btnSaveSettings" class="btn primary" data-i18n="saveSettings">Tallenna asetukset</button>
+      </div>
+      <div class="card small-text">
+        <div><strong>Versio</strong> <span id="appVersion"></span></div>
+        <div id="userInfo"></div>
+        <button id="btnLogout" class="btn secondary hidden" data-i18n="logout">Kirjaudu ulos</button>
+        <p class="hint" data-i18n="privacyNote">Liidit tallentuvat ensin puhelimeen ja siirtyvät SharePointiin, kun yhteys on käytössä. Poista synkronoidut liidit puhelimesta tapahtuman jälkeen.</p>
+        <button id="btnPurge" class="btn danger" data-i18n="purge">Poista synkronoidut liidit puhelimesta</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
+  <script src="app.js" defer></script>
+</body>
+</html>
